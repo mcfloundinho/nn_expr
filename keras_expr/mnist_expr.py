@@ -6,6 +6,7 @@
 from data import mnist
 import numpy as np
 import os
+import pickle
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten,\
@@ -16,7 +17,7 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--model", default="cnn", type=str,
+parser.add_argument("--model", default="mlp", type=str,
                     help="type of model")
 args = parser.parse_args()
 
@@ -108,7 +109,6 @@ if __name__ == "__main__":
               batch_size=16,
               show_accuracy=True)
     # dump model
-    import pickle
     pickle.dump(
         model,
         open(os.path.join(
