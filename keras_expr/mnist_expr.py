@@ -5,6 +5,9 @@
 # Mail: hewr2010@gmail.com
 from data import mnist
 import numpy as np
+import os
+
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def one_hot(x, max_len=10):
@@ -44,13 +47,22 @@ def get_model_mlp(in_dim, out_dim):
     return model
 
 if __name__ == "__main__":
+    # prepare data
     X_train, y_train = get_dataset(mnist.trainset())
     X_test, y_test = get_dataset(mnist.testset())
+    # train model
     model = get_model_mlp(X_train.shape[1], y_train.shape[1])
     model.fit(X_train, y_train,
               nb_epoch=20,
               batch_size=16,
               show_accuracy=True)
-    score = model.evaluate(X_test, y_test, batch_size=16)
+    # dump model
+    import pickle
+    pickle.dump(model, open(
+        os.path.join(BASE_DIR, "./trained_models/mnist_mlp.pickle"), "w"))
+    # eval results
+    objective_score = model.evaluate(X_test, y_test, batch_size=16)
+    classes = model.predict_classes(X_test, batch_size=32)
+    proba = model.predict_proba(X_test, batch_size=32)
     from IPython import embed; embed()
     exit()
