@@ -19,6 +19,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", default="mlp", type=str,
                     help="type of model")
+parser.add_argument("--learning-rate", default=0.1, type=float)
 args = parser.parse_args()
 
 
@@ -101,7 +102,7 @@ if __name__ == "__main__":
         X_train.shape[1] if is_flatten else X_train.shape[1:],
         y_train.shape[1],
     )
-    sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = SGD(lr=args.learning_rate, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd)
     model.fit(X_train, y_train,
