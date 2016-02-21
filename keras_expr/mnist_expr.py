@@ -121,4 +121,3 @@ if __name__ == "__main__":
     classes = model.predict_classes(X_test, batch_size=32)
     proba = model.predict_proba(X_test, batch_size=32)
     from IPython import embed; embed()
-    exit()
