@@ -55,6 +55,7 @@ if __name__ == "__main__":
     #X_train, y_train = get_dataset(idcard.trainset()) TODO
     X_train, y_train = get_dataset(idcard.testset())
     X_test, y_test = get_dataset(idcard.testset())
+    print "data loaded"
     # train model
     model = get_model(X_train.shape[1:], y_train.shape[1:])
     model.fit(
