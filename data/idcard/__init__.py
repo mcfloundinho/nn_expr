@@ -5,22 +5,26 @@
 import os
 import cv2
 import glob
+import random
 import itertools
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-def generate(prefix):
-    for gt_path in glob.glob("%s/*_gt.jpg" % prefix):
-        img_path = gt_path[:-7] + ".jpg"
+def generate(prefix, randomize=False):
+    paths = glob.glob("%s/*_gt.jpg" % prefix)
+    if randomize:
+        random.shuffle(paths)
+    for gt_path in paths:
+        img_path = gt_path[:-7] + "_raw.jpg"
         img = cv2.imread(img_path)
         gt = cv2.imread(gt_path, 0)
         yield img, gt
 
 
-def trainset():
-    return generate(os.path.join(BASE_DIR, "train"))
+def trainset(randomize=False):
+    return generate(os.path.join(BASE_DIR, "train"), randomize=randomize)
 
 
-def testset():
-    return generate(os.path.join(BASE_DIR, "val"))
+def testset(randomize=False):
+    return generate(os.path.join(BASE_DIR, "val"), randomize=randomize)

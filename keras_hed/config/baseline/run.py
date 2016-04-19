@@ -14,17 +14,24 @@ from keras.optimizers import Adam
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-def get_dataset(gnr):
-    imgs, labels = [], []
-    for img, label in gnr:
-        data = img.transpose(2, 0, 1)
-        imgs.append(data)
-        label = label.reshape((1,) + label.shape)
-        label = label.astype("float32") / 255.
-        labels.append(label)
-    imgs = np.array(imgs, 'uint8')
-    labels = np.array(labels, 'float32')
-    return imgs, labels
+def data_generator(gnr_caller, batch_size=1):
+    gnr = gnr_caller()
+    while True:
+        imgs, labels = [], []
+        while len(imgs) < batch_size:
+            try:
+                img, label = gnr.next()
+            except StopIteration:
+                gnr = gnr_caller()
+                continue
+            data = img.transpose(2, 0, 1)
+            imgs.append(data)
+            label = label.reshape((1,) + label.shape)
+            label = label.astype("float32") / 255.
+            labels.append(label)
+        imgs = np.array(imgs, 'uint8')
+        labels = np.array(labels, 'float32')
+        yield {'input': imgs, 'output': labels}
 
 
 def get_model(in_shape, out_shape):
@@ -51,18 +58,18 @@ def get_model(in_shape, out_shape):
     return g
 
 if __name__ == "__main__":
-    # prepare data
-    #X_train, y_train = get_dataset(idcard.trainset()) TODO
-    X_train, y_train = get_dataset(idcard.testset())
-    X_test, y_test = get_dataset(idcard.testset())
-    print "data loaded"
+    # prepare data generator
+    train_dataset = data_generator(lambda: idcard.trainset(randomize=True))
+    test_dataset = data_generator(lambda: idcard.testset(randomize=True))
     # train model
-    model = get_model(X_train.shape[1:], y_train.shape[1:])
-    model.fit(
-        {'input': X_train, 'output': y_train},
-        #validation_data={'input': X_test, 'output': y_test},
+    datapoint = train_dataset.next()
+    model = get_model(datapoint["input"].shape[1:], datapoint["output"].shape[1:])
+    model.fit_generator(
+        train_dataset,
+        samples_per_epoch=1024,
         nb_epoch=20,
-        batch_size=128,
+        validation_data=test_dataset,
+        nb_val_samples=128,
     )
     # dump model
     open(os.path.join(BASE_DIR, 'architecture.json'), 'w').write(model.to_json())
@@ -71,4 +78,4 @@ if __name__ == "__main__":
     #objective_score = model.evaluate(X_test, y_test, batch_size=16)
     #classes = model.predict_classes(X_test, batch_size=32)
     #proba = model.predict_proba(X_test, batch_size=32)
-    from IPython import embed; embed()
+    #from IPython import embed; embed()
