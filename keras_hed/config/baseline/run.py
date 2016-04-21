@@ -67,15 +67,10 @@ if __name__ == "__main__":
     model.fit_generator(
         train_dataset,
         samples_per_epoch=1024,
-        nb_epoch=20,
+        nb_epoch=100000000,
         validation_data=test_dataset,
         nb_val_samples=128,
     )
     # dump model
     open(os.path.join(BASE_DIR, 'architecture.json'), 'w').write(model.to_json())
     model.save_weights(os.path.join(BASE_DIR, 'weights.h5'), overwrite=True)
-    # eval results
-    #objective_score = model.evaluate(X_test, y_test, batch_size=16)
-    #classes = model.predict_classes(X_test, batch_size=32)
-    #proba = model.predict_proba(X_test, batch_size=32)
-    #from IPython import embed; embed()
