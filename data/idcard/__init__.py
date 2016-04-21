@@ -21,10 +21,14 @@ def generate(prefix, randomize=False):
         gt = cv2.imread(gt_path, 0)
         yield img, gt
 
+def size_of_train():
+    return len(glob.glob(os.path.join(BASE_DIR, "train/*_gt.jpg")))
+
+def size_of_test():
+    return len(glob.glob(os.path.join(BASE_DIR, "val/*_gt.jpg")))
 
 def trainset(randomize=False):
     return generate(os.path.join(BASE_DIR, "train"), randomize=randomize)
-
 
 def testset(randomize=False):
     return generate(os.path.join(BASE_DIR, "val"), randomize=randomize)
