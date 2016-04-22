@@ -35,12 +35,14 @@ class Model(ModelDesc):
 
     def _get_cost(self, input_vars, is_training):
         image, label = input_vars
-
         if is_training:
-            tf.image_summary("train_image", image, BATCH_SIZE)
+            tf.image_summary('train_image', image, BATCH_SIZE)
 
-        with argscope(Conv2D, nl=BNReLU(is_training), use_bias=False, kernel_shape=3):
-            l = Conv2D('out', image, out_channel=OUT_CHANNEL, padding='SAME')
+        def find_tensor_by_name(graph, name):
+            try:
+                return graph.get_tensor_by_name(name + '/output:0')
+            except KeyError:
+                return graph.get_tensor_by_name(name + ':0')
 
         def cross_entropy(z, y):
             """
@@ -60,11 +62,76 @@ class Model(ModelDesc):
             loss_neg = tf.mul(1. - beta, tf.reduce_sum(tf.mul(tf.log(tf.abs(1. - z) + eps), 1. - y), 1))
             cost = tf.sub(loss_pos, loss_neg)
             cost = tf.reduce_mean(cost, name='cost')
-
             return cost
 
-        cost = cross_entropy(l, label)
-        #tf.add_to_collection(MOVING_SUMMARY_VARS_KEY, cost)
+        def architecture_VGG(input_tensor):
+            with argscope(Conv2D, nl=tf.identity, use_bias=False, padding='SAME'):
+                with argscope(Maxout, num_unit=2):
+                    l = Conv2D('conv0', input_tensor, kernel_shape=4, stride=2, out_channel=64)
+                    l = Maxout('maxout', l)
+                    l = Conv2D('conv1a', l, kernel_shape=3, out_channel=48)
+                    l = Maxout('maxout', l)
+                    l = Conv2D('conv1b', l, kernel_shape=4, stride=2, out_channel=48)
+                    l = Maxout('maxout', l)
+                    for i in xrange(4):
+                        l = Conv2D('conv_1_{}'.format(i), l, kernel_shape=3, out_channel=36)
+                        l = Maxout('maxout', l)
+                    l = Conv2D('conv2', l, kernel_shape=4, stride=2, out_channel=64)
+                    l = Maxout('maxout', l)
+                    for i in xrange(6):
+                        l = Conv2D('conv_2_{}'.format(i), l, kernel_shape=3, out_channel=72)
+                        l = Maxout('maxout', l)
+            return l
+
+        def add_supervision(prefix, input_tensor, stride):
+            with argscope(Conv2D, nl=tf.identity, use_bias=False, padding='SAME'):
+                l = Conv2D(prefix + '_nin', input_tensor, kernel_shape=1, out_channel=OUT_CHANNEL)
+                if stride == 1:
+                    upsampled_tensor = tf.identity(l, name=prefix + '_id')
+                else:
+                    for i in xrange(int(round(np.log(stride) / np.log(2)))):
+                        l = FixedUnPooling('unpool', l, 2)
+                        l = Conv2D(prefix + '_deconv_{}'.format(i), l, kernel_shape=5, out_channel=3)
+                    i += 1
+                    upsampled_tensor = Conv2D(prefix + '_deconv_{}'.format(i), l, kernel_shape=3, out_channel=OUT_CHANNEL)
+            l = tf.sigmoid(upsampled_tensor, name=prefix + '_sigmoid')
+            cost = cross_entropy(l, label)
+            return upsampled_tensor, cost
+
+        # build model
+        l = architecture_VGG(image)
+        l = MaxPooling('pool4', l, 2)
+        for i in xrange(4):
+            with argscope(Conv2D, nl=tf.identity, use_bias=False, padding='SAME'):
+                with argscope(Maxout, num_unit=2):
+                    l = Conv2D('conv_3_{}'.format(i), l, kernel_shape=3, out_channel=96)
+                    l = Maxout('maxout', l)
+        # side supervision
+        upsampled_list, cost_list = [], []
+        for idx, (tensor_name, stride) in enumerate(zip(
+                ['conv1a', 'conv1b', 'conv2', 'conv_2_5', 'conv_3_3'],
+                [2, 4, 8, 8, 16],
+        )):
+            bottom_tensor = find_tensor_by_name(l.graph, tensor_name)
+            upsampled_tensor, cost = add_supervision('upsample_{}'.format(idx), bottom_tensor, stride)
+            upsampled_list.append(upsampled_tensor)
+            #cost_list.append(cost)   # XXX uncomment for DSN
+        # concat
+        l = tf.concat(3, upsampled_list)
+        # output
+        upsampled_tensor, cost = add_supervision('upsample_final', l, 1)
+        cost_list.append(cost)
+
+        # calculate cost
+        weighted_cost_list = [(t, 0.3) for t in cost_list[:-1]] + [(cost_list[-1], 1.)]
+        cost = tf.add_n([w * t for t, w in weighted_cost_list], name='cost')
+        # weight decay on all W of fc layers
+        wd_cost = tf.mul(0.004,
+                         regularize_cost('.*/W', tf.nn.l2_loss),
+                         name='regularize_loss')
+        tf.add_to_collection(MOVING_SUMMARY_VARS_KEY, wd_cost)
+        add_param_summary([('.*/W', ['histogram'])])   # monitor W
+        cost = tf.add_n([cost, wd_cost], name='combined_cost')
 
         return cost
 
