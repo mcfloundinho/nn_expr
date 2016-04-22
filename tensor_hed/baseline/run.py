@@ -13,7 +13,7 @@ PREFETCH_SIZE = 4
 NR_PROC = 1
 IMAGE_SHAPE = (256, 256)
 NR_CHANNEL = 3
-
+OUT_CHANNEL = 1
 
 import tensorflow as tf
 from tensorpack.train import TrainConfig, QueueInputTrainer
@@ -29,32 +29,42 @@ from tensorpack.dataflow import *
 class Model(ModelDesc):
     def _get_input_vars(self):
         return [
-            InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'input'),
-            InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'label'),
+            InputVar(tf.float32, [BATCH_SIZE, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'input'),
+            InputVar(tf.float32, [BATCH_SIZE, IMAGE_SHAPE[0], IMAGE_SHAPE[1], OUT_CHANNEL], 'label'),
         ]
 
     def _get_cost(self, input_vars, is_training):
         image, label = input_vars
-        keep_prob = tf.constant(0.5 if is_training else 1.0)
 
         if is_training:
-            tf.image_summary("train_image", image, 1)
+            tf.image_summary("train_image", image, BATCH_SIZE)
 
         with argscope(Conv2D, nl=BNReLU(is_training), use_bias=False, kernel_shape=3):
-            l = Conv2D('conv1.1', image, out_channel=64)
-            l = Conv2D('conv1.2', l, out_channel=64)
-            l = MaxPooling('pool1', l, 3, stride=2, padding='SAME')
+            l = Conv2D('out', image, out_channel=OUT_CHANNEL, padding='SAME')
 
-            l = Conv2D('conv2.1', l, out_channel=128)
-            l = Conv2D('conv2.2', l, out_channel=128)
-            l = MaxPooling('pool2', l, 3, stride=2, padding='SAME')
+        def cross_entropy(z, y):
+            """
+            :param z: output of nn
+            :param y: ground truth
+            """
+            z = tf.reshape(z, tf.pack([tf.shape(z)[0], -1]))
+            y = tf.reshape(y, tf.pack([tf.shape(y)[0], -1]))
 
-            l = Conv2D('conv3.1', l, out_channel=128, padding='SAME')
-            l = Conv2D('conv3.2', l, out_channel=128, padding='SAME')
+            count_neg = tf.reduce_sum(1. - y)
+            count_pos = tf.reduce_sum(y)
+            total = tf.add(count_neg, count_pos)
+            beta = tf.truediv(count_neg, total)
 
-        cost = tf.nn.sparse_softmax_cross_entropy_with_logits(l, label)  # FIXME
-        cost = tf.reduce_mean(cost, name='cross_entropy_loss')
-        tf.add_to_collection(MOVING_SUMMARY_VARS_KEY, cost)
+            eps = 1e-8
+            loss_pos = tf.mul(-beta, tf.reduce_sum(tf.mul(tf.log(tf.abs(z) + eps), y), 1))
+            loss_neg = tf.mul(1. - beta, tf.reduce_sum(tf.mul(tf.log(tf.abs(1. - z) + eps), 1. - y), 1))
+            cost = tf.sub(loss_pos, loss_neg)
+            cost = tf.reduce_mean(cost, name='cost')
+
+            return cost
+
+        cost = cross_entropy(l, label)
+        #tf.add_to_collection(MOVING_SUMMARY_VARS_KEY, cost)
 
         return cost
 
@@ -62,10 +72,6 @@ class Model(ModelDesc):
 def get_data(train_or_test):
     isTrain = train_or_test == 'train'
     ds = data_loader.get_dataset(train_or_test)
-    print ds.size()
-    for img, label in ds.get_data():
-        print img, label
-        break
     if isTrain:
         augmentors = [
             imgaug.BrightnessAdd(15),
@@ -105,7 +111,7 @@ def get_config():
         callbacks=Callbacks([
             StatPrinter(),
             ModelSaver(),
-            InferenceRunner(dataset_test, ClassificationError())
+            #InferenceRunner(dataset_test, ClassificationError())
         ]),
         session_config=sess_config,
         model=Model(),

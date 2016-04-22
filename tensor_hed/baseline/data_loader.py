@@ -35,7 +35,7 @@ class GeneratorWrapperDataset(DataFlow):
             count += 1
             img = img.astype('float32') / 255.
             label = label.astype('float32') / 255.
-            label = label.reshape((1,) + label.shape)
+            label = label.reshape(label.shape[:2] + (1,))
             yield [img, label]
 
 
