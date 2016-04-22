@@ -10,7 +10,7 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 BATCH_SIZE = 1
 PREFETCH_SIZE = 4
-NR_PROC = 1
+NR_PROC = 4
 IMAGE_SHAPE = (256, 256)
 NR_CHANNEL = 3
 OUT_CHANNEL = 1
@@ -98,9 +98,10 @@ class Model(ModelDesc):
                         l = Conv2D(prefix + '_deconv_{}'.format(i), l, kernel_shape=5, out_channel=3)
                     i += 1
                     upsampled_tensor = Conv2D(prefix + '_deconv_{}'.format(i), l, kernel_shape=3, out_channel=OUT_CHANNEL)
-            l = tf.sigmoid(upsampled_tensor, name=prefix + '_sigmoid')
+            #l = tf.sigmoid(upsampled_tensor, name=prefix + '_sigmoid')
+            l = NonLinearity(prefix + '_sigmoid', upsampled_tensor, tf.sigmoid)
             cost = cross_entropy(l, label)
-            return upsampled_tensor, cost
+            return l, cost
 
         # build model
         l = architecture_VGG(image)
@@ -121,9 +122,9 @@ class Model(ModelDesc):
             upsampled_list.append(upsampled_tensor)
             #cost_list.append(cost)   # XXX uncomment for DSN
         # concat
-        l = tf.concat(3, upsampled_list)
+        l = tf.concat(3, upsampled_list, name='concat')
         # output
-        upsampled_tensor, cost = add_supervision('upsample_final', l, 1)
+        l, cost = add_supervision('upsample_final', l, 1)
         cost_list.append(cost)
 
         # calculate cost
