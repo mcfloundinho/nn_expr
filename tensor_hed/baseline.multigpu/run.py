@@ -37,16 +37,7 @@ class Model(ModelDesc):
         image, label = input_vars
         if is_training:
             tf.image_summary('train_image', image, BATCH_SIZE)
-
-        def find_tensor_by_name(graph, name):
-            try:
-                return graph.get_tensor_by_name(name + '/output:0')
-            except KeyError:
-                try:
-                    return graph.get_tensor_by_name(name + ':0')
-                except KeyError as e:
-                    #from IPython import embed; embed()
-                    raise
+        tensor_buffer_list = []
 
         def cross_entropy(z, y):
             """
@@ -74,16 +65,21 @@ class Model(ModelDesc):
                     l = Conv2D('conv0', input_tensor, kernel_shape=4, stride=2, out_channel=64)
                     l = Maxout('maxout', l)
                     l = Conv2D('conv1a', l, kernel_shape=3, out_channel=48)
+                    tensor_buffer_list.append(l)
                     l = Maxout('maxout', l)
                     l = Conv2D('conv1b', l, kernel_shape=4, stride=2, out_channel=48)
+                    tensor_buffer_list.append(l)
                     l = Maxout('maxout', l)
                     for i in xrange(4):
                         l = Conv2D('conv_1_{}'.format(i), l, kernel_shape=3, out_channel=36)
                         l = Maxout('maxout', l)
                     l = Conv2D('conv2', l, kernel_shape=4, stride=2, out_channel=64)
+                    tensor_buffer_list.append(l)
                     l = Maxout('maxout', l)
                     for i in xrange(6):
                         l = Conv2D('conv_2_{}'.format(i), l, kernel_shape=3, out_channel=72)
+                        if i == 5:
+                            tensor_buffer_list.append(l)
                         l = Maxout('maxout', l)
             return l
 
@@ -109,15 +105,17 @@ class Model(ModelDesc):
             with argscope(Conv2D, nl=tf.identity, use_bias=False, padding='SAME'):
                 with argscope(Maxout, num_unit=2):
                     l = Conv2D('conv_3_{}'.format(i), l, kernel_shape=3, out_channel=96)
+                    if i == 3:
+                        tensor_buffer_list.append(l)
                     l = Maxout('maxout', l)
         # side supervision
         upsampled_list, cost_list = [], []
-        for idx, (tensor_name, stride) in enumerate(zip(
-                ['conv1a', 'conv1b', 'conv2', 'conv_2_5', 'conv_3_3'],
-                [2, 4, 8, 8, 16],
+        stride_list = [2, 4, 8, 8, 16]
+        assert len(tensor_buffer_list) == len(stride_list)
+        for idx, (tensor, stride) in enumerate(zip(
+                tensor_buffer_list, stride_list,
         )):
-            bottom_tensor = find_tensor_by_name(l.graph, tensor_name)
-            upsampled_tensor, cost = add_supervision('upsample_{}'.format(idx), bottom_tensor, stride)
+            upsampled_tensor, cost = add_supervision('upsample_{}'.format(idx), tensor, stride)
             upsampled_list.append(upsampled_tensor)
             #cost_list.append(cost)   # XXX uncomment for DSN
         # concat
