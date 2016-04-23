@@ -56,7 +56,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     basename = os.path.basename(__file__)
-    logger.set_logger_dir(os.path.join(BASE_DIR, '.log'))
+    logger.set_logger_dir(os.path.join(BASE_DIR, '.log'), action='d')
 
     if args.gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
