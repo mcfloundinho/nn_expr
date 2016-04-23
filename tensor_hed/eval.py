@@ -11,6 +11,17 @@ import numpy as np
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--images', nargs='+')
+parser.add_argument('--threshold', type=float, default=0.,
+                    help='for heatmap')
+parser.add_argument('--gpu', help='comma separated list of GPU(s) to use.')
+parser.add_argument('--config', type=str, help='run.py', required=True)
+parser.add_argument('--checkpoint', type=str, default='',
+                    help='default as "DIR{config}/train_log/checkpoint"')
+args = parser.parse_args()
+
 import tensorflow as tf
 from tensorpack.train import TrainConfig, QueueInputTrainer
 from tensorpack.predict import PredictConfig, get_predict_func
@@ -21,6 +32,18 @@ from tensorpack.tfutils import *
 from tensorpack.tfutils.symbolic_functions import *
 from tensorpack.tfutils.summary import *
 from tensorpack.dataflow import *
+
+logger.set_logger_dir(os.path.join(BASE_DIR, '.log'), action='d')
+
+if args.checkpoint == "":
+    args.checkpoint = os.path.join(os.path.dirname(args.config),
+                                   "train_log/checkpoint")
+    logger.info('checkpoint set to "%s"' % args.checkpoint)
+
+if args.gpu:
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+else:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
 class ScopedTimer:
@@ -39,30 +62,12 @@ def assemble_func(config_module, checkpoint_path):
         model=model,
         input_data_mapping=[0],
         session_init=SaverRestore(checkpoint_path),
-        output_var_names=['upsample_final_sigmoid/output:0']   # output:0 is the probability distribution
+        output_var_names=['upsample_final_sigmoid/output:0'],
     )
     predict_func = get_predict_func(pred_config)
     return predict_func
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--images', nargs='+')
-    parser.add_argument('--threshold', type=float, default=0.,
-                        help='for heatmap')
-    parser.add_argument('--gpu', help='comma separated list of GPU(s) to use.')
-    parser.add_argument('--config', type=str, help='run.py', required=True)
-    parser.add_argument('--checkpoint', type=str, required=True)
-    args = parser.parse_args()
-
-    basename = os.path.basename(__file__)
-    logger.set_logger_dir(os.path.join(BASE_DIR, '.log'), action='d')
-
-    if args.gpu:
-        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-    else:
-        os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
     # load user config
     sys.path.append(os.path.dirname(args.config))
     config_module = imp.load_source('_user_config', args.config)
