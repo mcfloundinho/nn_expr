@@ -3,6 +3,7 @@
 # Created Time: Thu 21 Apr 2016 11:28:50 PM CST
 # Mail: hewr2010@gmail.com
 import os
+import sys
 import cv2
 import imp
 import time
@@ -50,8 +51,8 @@ if __name__ == '__main__':
     parser.add_argument('--threshold', type=float, default=0.,
                         help='for heatmap')
     parser.add_argument('--gpu', help='comma separated list of GPU(s) to use.')
-    parser.add_argument('--config', type=str, default='./run.py', help='run.py')
-    parser.add_argument('--checkpoint', type=str, default='./train_log/checkpoint')
+    parser.add_argument('--config', type=str, help='run.py', required=True)
+    parser.add_argument('--checkpoint', type=str, required=True)
     args = parser.parse_args()
 
     basename = os.path.basename(__file__)
@@ -62,7 +63,10 @@ if __name__ == '__main__':
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
+    # load user config
+    sys.path.append(os.path.dirname(args.config))
     config_module = imp.load_source('_user_config', args.config)
+    # assemble prediction function
     predict_func = assemble_func(config_module, args.checkpoint)
 
     for img_path in args.images:
