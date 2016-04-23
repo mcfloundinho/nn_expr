@@ -142,7 +142,7 @@ def get_data(train_or_test):
     ds = data_loader.get_dataset(train_or_test)
     if isTrain:
         augmentors = [
-            imgaug.BrightnessAdd(15),
+            imgaug.Brightness(15),
             imgaug.Contrast((0.8, 1.2)),
             imgaug.MeanVarianceNormalize(all_channel=True)
         ]
