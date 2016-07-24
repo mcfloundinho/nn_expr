@@ -1,4 +1,5 @@
 .DS_Store
+*train_log
 *.pyc
 *.swp
 *.swo
