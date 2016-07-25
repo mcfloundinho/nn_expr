@@ -87,9 +87,9 @@ def get_data(train_or_test):
 
 def get_config():
     # prepare dataset
+    step_per_epoch = 1024
     dataset_train = get_data('train')
     dataset_test = get_data('test')
-    step_per_epoch = 1024
 
     sess_config = get_default_sess_config(0.5)
 

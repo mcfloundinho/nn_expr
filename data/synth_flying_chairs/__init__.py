@@ -7,6 +7,7 @@ import cv2
 import glob
 import random
 import itertools
+import numpy as np
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -14,7 +15,8 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 def generate(prefix, randomize=False):
     gt_paths = glob.glob('%s/*.txt' % prefix)
     if randomize:
-        random.shuffle(gt_paths)
+        rng = np.random.RandomState(9378)
+        rng.shuffle(gt_paths)
     for gt_path in gt_paths:
         lpath = '%s.left.jpg' % (gt_path[:-4])
         rpath = '%s.right.jpg' % (gt_path[:-4])

@@ -21,13 +21,15 @@ class FlyingChairDataset(DataFlow):
 
     def reset_state(self):
         self.rng = get_rng(self)
-        self.ds = synth_flying_chairs.get_dataset(self.train_or_test, randomize=True)
 
     def size(self):
         return synth_flying_chairs.size_of_dataset(self.train_or_test)
 
     def get_data(self):
-        for limg, rimg, gt in self.ds:
+        for limg, rimg, gt in synth_flying_chairs.get_dataset(
+                self.train_or_test,
+                randomize=True
+        ):
             ldata = limg.astype('float32') / 255.
             rdata = rimg.astype('float32') / 255.
             label = np.array(gt, 'float32')
@@ -40,5 +42,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ds = FlyingChairDataset(args.dataset)
+    print(ds.size())
     for ldata, rdata, label in ds.get_data():
         pass
