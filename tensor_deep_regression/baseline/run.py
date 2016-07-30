@@ -29,9 +29,9 @@ from tensorpack.dataflow import *
 class Model(ModelDesc):
     def _get_input_vars(self):
         return [
-            InputVar(tf.float32, [BATCH_SIZE, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'left'),
-            InputVar(tf.float32, [BATCH_SIZE, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'right'),
-            InputVar(tf.float32, [BATCH_SIZE, OUT_DIM], 'label'),
+            InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'left'),
+            InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'right'),
+            InputVar(tf.float32, [None, OUT_DIM], 'label'),
         ]
 
     def _get_cost(self, input_vars, is_training):

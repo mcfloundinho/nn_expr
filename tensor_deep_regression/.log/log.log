@@ -1,0 +1,51 @@
+checkpoint set to "baseline/train_log/checkpoint"
+conv0left input: [None, 64, 64, 3]
+conv0left output: [None, 64, 64, 32]
+pool0left input: [None, 64, 64, 32]
+pool0left output: [None, 32, 32, 32]
+conv1left input: [None, 64, 64, 3]
+conv1left output: [None, 64, 64, 64]
+pool1left input: [None, 64, 64, 64]
+pool1left output: [None, 32, 32, 64]
+conv2left input: [None, 64, 64, 3]
+conv2left output: [None, 64, 64, 96]
+pool2left input: [None, 64, 64, 96]
+pool2left output: [None, 32, 32, 96]
+conv3left input: [None, 64, 64, 3]
+conv3left output: [None, 64, 64, 128]
+pool3left input: [None, 64, 64, 128]
+pool3left output: [None, 32, 32, 128]
+conv0right input: [None, 64, 64, 3]
+conv0right output: [None, 64, 64, 32]
+pool0right input: [None, 64, 64, 32]
+pool0right output: [None, 32, 32, 32]
+conv1right input: [None, 64, 64, 3]
+conv1right output: [None, 64, 64, 64]
+pool1right input: [None, 64, 64, 64]
+pool1right output: [None, 32, 32, 64]
+conv2right input: [None, 64, 64, 3]
+conv2right output: [None, 64, 64, 96]
+pool2right input: [None, 64, 64, 96]
+pool2right output: [None, 32, 32, 96]
+conv3right input: [None, 64, 64, 3]
+conv3right output: [None, 64, 64, 128]
+pool3right input: [None, 64, 64, 128]
+pool3right output: [None, 32, 32, 128]
+fc0 input: [None, 32, 32, 256]
+fc0 output: [None, 256]
+fc1 input: [None, 256]
+fc1 output: [None, 128]
+fct input: [None, 128]
+fct output: [None, 4]
+Apply regularizer for conv0left/W:0
+Apply regularizer for conv1left/W:0
+Apply regularizer for conv2left/W:0
+Apply regularizer for conv3left/W:0
+Apply regularizer for conv0right/W:0
+Apply regularizer for conv1right/W:0
+Apply regularizer for conv2right/W:0
+Apply regularizer for conv3right/W:0
+Apply regularizer for fc0/W:0
+Apply regularizer for fc1/W:0
+Apply regularizer for fct/W:0
+Restoring checkpoint from /home/hewr1993/storage/expr/tensor_deep_regression/baseline/train_log/model-269312.
