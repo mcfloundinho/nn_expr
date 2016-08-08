@@ -20,6 +20,7 @@ class WiderFaceDenseBoxDataset(DataFlow):
     def __init__(self, train_or_test='train'):
         self.train_or_test = train_or_test
         self.reset_state()
+        self.sub_mean = np.array([104.00699, 116.66877, 122.67892], 'float32')
 
     def reset_state(self):
         self.rng = get_rng(self)
@@ -32,8 +33,8 @@ class WiderFaceDenseBoxDataset(DataFlow):
                 self.train_or_test,
                 randomize=True,
         ):
-            data = img.astype('float32') / 255.
-            label = label.astype('float32')
+            data = (img.astype('float32') - self.sub_mean) / 255.
+            label = label.transpose(2, 0, 1).astype('float32')
             yield [data, label]
 
 if __name__ == '__main__':
