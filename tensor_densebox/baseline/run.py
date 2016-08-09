@@ -38,21 +38,31 @@ class Model(ModelDesc):
             tf.reduce_sum(tf.greater(gt, 0), 3),
             3
         )  # FIXME cast needed?
+        npd = tf.transpose(pd, [3, 0, 1, 2])
+        ngt = tf.transpose(gt, [3, 0, 1, 2])
         area_x = tf.mul(
-            tf.add(),
-            tf.add()
-        )  # XXX transpose & gather
-        # TODO
-        area_x = (pd[:, 0] + pd[:, 2]) * (pd[:, 1] + pd[:, 3])
-        area_g = (gt[:, 0] + gt[:, 2]) * (gt[:, 1] + gt[:, 3])
-        w_overlap = O.max(0, O.min(pd[:, 0], gt[:, 0]) + O.min(pd[:, 2], gt[:, 2]))
-        h_overlap = O.max(0, O.min(pd[:, 1], gt[:, 1]) + O.min(pd[:, 3], gt[:, 3]))
-        area_overlap = w_overlap * h_overlap
-        area_u = area_x + area_g - area_overlap
-        iou = area_overlap / (area_u + 1)
-        iou = O.max(1e-4, iou)
-        cost = -O.log(iou)
-        cost = (cost * mask).sum()
+            tf.add(tf.gather(npd, 0), tf.gather(npd, 2)),
+            tf.add(tf.gather(npd, 1), tf.gather(npd, 3)),
+        )
+        area_g = tf.mul(
+            tf.add(tf.gather(ngt, 0), tf.gather(ngt, 2)),
+            tf.add(tf.gather(ngt, 1), tf.gather(ngt, 3)),
+        )
+        w_overlap = tf.maximum(tf.constant(0, tf.float32), tf.add(
+            tf.minimum(tf.gather(npd, 0), tf.gather(ngt, 0)),
+            tf.minimum(tf.gather(npd, 2), tf.gather(ngt, 2)),
+        ))
+        h_overlap = tf.maximum(tf.constant(0, tf.float32), tf.add(
+            tf.minimum(tf.gather(npd, 1), tf.gather(ngt, 1)),
+            tf.minimum(tf.gather(npd, 3), tf.gather(ngt, 3)),
+        ))
+        area_overlap = tf.mul(w_overlap, h_overlap)
+        area_u = tf.sub(tf.add(area_x, area_g), area_overlap)
+        iou = tf.div(area_overlap, tf.add(area_u, tf.constant(1, tf.float32)))
+        iou = tf.maximum(iou, tf.constant(1e-4, tf.float32))
+        cost = -tf.log(iou)
+        cost = tf.mul(cost, mask)
+        cost = tf.reduce_sum(cost)
         return cost
 
     def _get_input_vars(self):
