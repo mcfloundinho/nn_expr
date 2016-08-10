@@ -34,10 +34,11 @@ from tensorpack.dataflow import *
 
 class Model(ModelDesc):
     def IoULoss(self, pd, gt):
-        mask = tf.greater(
-            tf.reduce_sum(tf.greater(gt, 0), 3),
-            3
-        )  # FIXME cast needed?
+        mask = tf.cast(
+            tf.greater(tf.reduce_sum(
+                tf.cast(tf.greater(gt, 0), tf.int8), 3), 3),
+            tf.float32
+        )
         npd = tf.transpose(pd, [3, 0, 1, 2])
         ngt = tf.transpose(gt, [3, 0, 1, 2])
         area_x = tf.mul(
@@ -67,8 +68,10 @@ class Model(ModelDesc):
 
     def _get_input_vars(self):
         return [
-            InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'input'),
-            InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], OUT_DIM], 'label'),
+            #InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'input'),
+            #InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], OUT_DIM], 'label'),
+            InputVar(tf.float32, [None, None, None, NR_CHANNEL], 'input'),
+            InputVar(tf.float32, [None, None, None, OUT_DIM], 'label'),
         ]
 
     def _get_cost(self, input_vars, is_training):
@@ -78,7 +81,7 @@ class Model(ModelDesc):
 
         # build model
         branch_list = []
-        with argscope(Conv2D, kernal_shape=3, nl=tf.nn.relu, use_bias=False, padding='SAME'):
+        with argscope(Conv2D, kernel_shape=3, nl=tf.nn.relu, use_bias=False, padding='SAME'):
             with argscope(MaxPooling, stride=2, padding='VALID'):
                 l = Conv2D('conv1_1', image, 64)
                 l = Conv2D('conv1_2', l, 64)
@@ -128,7 +131,7 @@ class Model(ModelDesc):
         l = tf.nn.sigmoid(l, name='boxes')
         outputs.append(l)
         boxes_label = tf.slice(label, [0, 0, 0, 1], [-1, -1, -1, -1])
-        boxes_cost = IoULoss(l, boxes_label) * 1e-6  # constant for cost balancing
+        boxes_cost = self.IoULoss(l, boxes_label) * 1e-6  # constant for cost balancing
 
         cost = score_cost + boxes_cost
 

@@ -33,8 +33,12 @@ class WiderFaceDenseBoxDataset(DataFlow):
                 self.train_or_test,
                 randomize=True,
         ):
-            data = (img.astype('float32') - self.sub_mean) / 255.
-            label = label.transpose(2, 0, 1).astype('float32')
+            #img = cv2.resize(img, (512, 512))
+            #_label = [cv2.resize(l, (512, 512)) for l in label]
+            #label = np.array(_label, 'float32')
+            #data = (img.astype('float32') - self.sub_mean) / 255.
+            data = img.astype('float32') / 255.
+            label = label.transpose(1, 2, 0).astype('float32')
             yield [data, label]
 
 if __name__ == '__main__':
