@@ -174,7 +174,7 @@ def get_config():
         callbacks=Callbacks([
             StatPrinter(),
             ModelSaver(),
-            InferenceRunner(dataset_test, ScalarStats('combined_cost'))
+            InferenceRunner(dataset_test, ScalarStats('combined_cost')),
         ]),
         session_config=sess_config,
         model=Model(),
