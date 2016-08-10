@@ -126,7 +126,7 @@ class Model(ModelDesc):
             l = FixedUnPooling('dsn2-unpool{}'.format(i), l, 2)
             l = Conv2D('dsn2-unconv{}'.format(i), l, kernel_shape=3, out_channel=OUT_DIM - 1, padding='SAME', nl=tf.identity)
         l = Conv2D('dsn2-conv-final', l, kernel_shape=3, out_channel=OUT_DIM - 1, padding='SAME', nl=tf.nn.relu)
-        l = tf.nn.sigmoid(l, name='boxes')
+        l = tf.identity(l, name='boxes')
         outputs.append(l)
         boxes_label = tf.slice(label, [0, 0, 0, 1], [-1, -1, -1, -1])
         boxes_cost = self.IoULoss(l, boxes_label) * 1e-6  # constant for cost balancing
