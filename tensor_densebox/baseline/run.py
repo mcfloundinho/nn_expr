@@ -68,13 +68,11 @@ class Model(ModelDesc):
 
     def _get_input_vars(self):
         return [
-            #InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], NR_CHANNEL], 'input'),
-            #InputVar(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], OUT_DIM], 'label'),
             InputVar(tf.float32, [None, None, None, NR_CHANNEL], 'input'),
             InputVar(tf.float32, [None, None, None, OUT_DIM], 'label'),
         ]
 
-    def _get_cost(self, input_vars, is_training):
+    def _build_graph(self, input_vars, is_training):
         image, label = input_vars
         if is_training:
             tf.image_summary('train_image', image, BATCH_SIZE)
@@ -141,8 +139,7 @@ class Model(ModelDesc):
                          name='regularize_loss')
         tf.add_to_collection(MOVING_SUMMARY_VARS_KEY, wd_cost)
         add_param_summary([('.*/W', ['histogram'])])   # monitor W
-        cost = tf.add_n([cost, wd_cost], name='combined_cost')
-        return cost
+        self.cost = tf.add_n([cost, wd_cost], name='combined_cost')
 
 
 def get_data(train_or_test):
@@ -156,7 +153,7 @@ def get_data(train_or_test):
 
 def get_config():
     # prepare dataset
-    step_per_epoch = 128
+    step_per_epoch = 1024
     dataset_train = get_data('train')
     dataset_test = get_data('test')
 
@@ -177,7 +174,7 @@ def get_config():
         callbacks=Callbacks([
             StatPrinter(),
             ModelSaver(),
-            #InferenceRunner(dataset_test, ClassificationError())
+            InferenceRunner(dataset_test, ScalarStats('combined_cost'))
         ]),
         session_config=sess_config,
         model=Model(),
