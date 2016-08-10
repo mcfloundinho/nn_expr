@@ -142,9 +142,9 @@ class Model(ModelDesc):
         self.cost = tf.add_n([cost, wd_cost], name='combined_cost')
 
 
-def get_data(train_or_test):
+def get_data(train_or_test, size=-1):
     isTrain = train_or_test == 'train'
-    ds = WiderFaceDenseBoxDataset(train_or_test)
+    ds = WiderFaceDenseBoxDataset(train_or_test, size=size)
     ds = BatchData(ds, BATCH_SIZE, remainder=not isTrain)
     if isTrain:
         ds = PrefetchData(ds, PREFETCH_SIZE, NR_PROC)
@@ -155,7 +155,7 @@ def get_config():
     # prepare dataset
     step_per_epoch = 1024
     dataset_train = get_data('train')
-    dataset_test = get_data('test')
+    dataset_test = get_data('test', 16)
 
     sess_config = get_default_sess_config(0.5)
 
@@ -163,7 +163,7 @@ def get_config():
     lr = tf.train.exponential_decay(
         learning_rate=1e-4,
         global_step=get_global_step_var(),
-        decay_steps=step_per_epoch * 10,
+        decay_steps=step_per_epoch * 100,
         decay_rate=0.8,
         staircase=True, name='learning_rate')
     tf.scalar_summary('learning_rate', lr)

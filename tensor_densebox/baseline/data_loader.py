@@ -17,22 +17,28 @@ from tensorpack.utils import get_rng
 
 
 class WiderFaceDenseBoxDataset(DataFlow):
-    def __init__(self, train_or_test='train'):
+    def __init__(self, train_or_test='train', size=-1):
         self.train_or_test = train_or_test
         self.reset_state()
         self.sub_mean = np.array([104.00699, 116.66877, 122.67892], 'float32')
+        if size == -1:
+            self._size = wider_face_densebox.size_of_dataset(self.train_or_test)
+        else:
+            self._size = size
 
     def reset_state(self):
         self.rng = get_rng(self)
 
     def size(self):
-        return wider_face_densebox.size_of_dataset(self.train_or_test)
+        return self._size
 
     def get_data(self):
-        for img, label in wider_face_densebox.get_dataset(
+        for idx, (img, label) in enumerate(wider_face_densebox.get_dataset(
                 self.train_or_test,
                 randomize=True,
-        ):
+        )):
+            if idx >= self._size:
+                break
             #data = (img.astype('float32') - self.sub_mean) / 255.
             data = img.astype('float32') / 255.
             label = label.transpose(1, 2, 0).astype('float32')
