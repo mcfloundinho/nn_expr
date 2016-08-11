@@ -64,8 +64,9 @@ def assemble_func(config_module, checkpoint_path):
     model = config_module.Model()
     pred_config = PredictConfig(
         model=model,
-        input_data_mapping=[0],
+        input_var_names=['input'],
         session_init=SaverRestore(checkpoint_path),
+        session_config=get_default_sess_config(0.5),
         output_var_names=['score', 'boxes'],
     )
     predict_func = get_predict_func(pred_config)
@@ -92,10 +93,10 @@ if __name__ == '__main__':
         with ScopedTimer() as timer:
             pred_res = predict_func([data])
             heatmap = pred_res[0][0, :, :, 0]
+            print("heatmap l2loss: %.6f" % (((_[:, :, 0] - heatmap) ** 2).mean()))
+            print("heatmap min(%.6f) max(%.6f)" % (heatmap.min(), heatmap.max()))
             heatmap[heatmap < args.score_threshold] = 0
             label = pred_res[1][0].transpose(2, 0, 1)
-        from IPython import embed; embed()
-        exit()
         print 'time passed:', timer.interval
         # heatmap
         merged_img = (img.astype('float32') * np.maximum(0.2, heatmap)\

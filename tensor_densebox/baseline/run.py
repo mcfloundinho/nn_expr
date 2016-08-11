@@ -125,7 +125,7 @@ class Model(ModelDesc):
         for i in range(4):
             l = FixedUnPooling('dsn2-unpool{}'.format(i), l, 2)
             l = Conv2D('dsn2-unconv{}'.format(i), l, kernel_shape=3, out_channel=OUT_DIM - 1, padding='SAME', nl=tf.identity)
-        l = Conv2D('dsn2-conv-final', l, kernel_shape=3, out_channel=OUT_DIM - 1, padding='SAME', nl=tf.nn.relu)
+        l = Conv2D('dsn2-conv-final', l, kernel_shape=3, out_channel=OUT_DIM - 1, padding='SAME', nl=tf.identity)
         l = tf.identity(l, name='boxes')
         outputs.append(l)
         boxes_label = tf.slice(label, [0, 0, 0, 1], [-1, -1, -1, -1])
@@ -134,7 +134,7 @@ class Model(ModelDesc):
         cost = score_cost + boxes_cost
 
         # weight decay on all W of fc layers
-        wd_cost = tf.mul(0.004,
+        wd_cost = tf.mul(1e-5,
                          regularize_cost('.*/W', tf.nn.l2_loss),
                          name='regularize_loss')
         tf.add_to_collection(MOVING_SUMMARY_VARS_KEY, wd_cost)
@@ -155,13 +155,13 @@ def get_config():
     # prepare dataset
     step_per_epoch = 1024
     dataset_train = get_data('train')
-    dataset_test = get_data('test', 16)
+    dataset_test = get_data('test', 128)
 
     sess_config = get_default_sess_config(0.5)
 
     nr_gpu = get_nr_gpu()
     lr = tf.train.exponential_decay(
-        learning_rate=1e-4,
+        learning_rate=1e-5,
         global_step=get_global_step_var(),
         decay_steps=step_per_epoch * 100,
         decay_rate=0.8,
@@ -170,11 +170,11 @@ def get_config():
 
     return TrainConfig(
         dataset=dataset_train,
-        optimizer=tf.train.AdamOptimizer(lr, epsilon=1e-4),
+        optimizer=tf.train.AdamOptimizer(lr, epsilon=1e-5),
         callbacks=Callbacks([
             StatPrinter(),
             ModelSaver(),
-            InferenceRunner(dataset_test, ScalarStats('combined_cost')),
+            #InferenceRunner(dataset_test, ScalarStats('combined_cost')),
         ]),
         session_config=sess_config,
         model=Model(),
