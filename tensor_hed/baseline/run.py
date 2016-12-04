@@ -33,9 +33,9 @@ class Model(ModelDesc):
             InputVar(tf.float32, [BATCH_SIZE, IMAGE_SHAPE[0], IMAGE_SHAPE[1], OUT_CHANNEL], 'label'),
         ]
 
-    def _get_cost(self, input_vars, is_training):
+    def _build_graph(self, input_vars):
         image, label = input_vars
-        if is_training:
+        if get_current_tower_context().is_training:
             tf.image_summary('train_image', image, BATCH_SIZE)
 
         def find_tensor_by_name(graph, name):
@@ -98,8 +98,8 @@ class Model(ModelDesc):
                         l = Conv2D(prefix + '_deconv_{}'.format(i), l, kernel_shape=5, out_channel=3)
                     i += 1
                     upsampled_tensor = Conv2D(prefix + '_deconv_{}'.format(i), l, kernel_shape=3, out_channel=OUT_CHANNEL)
-            #l = tf.sigmoid(upsampled_tensor, name=prefix + '_sigmoid')
-            l = NonLinearity(prefix + '_sigmoid', upsampled_tensor, tf.sigmoid)
+            l = tf.nn.sigmoid(upsampled_tensor, name=prefix + '_sigmoid')
+            # l = NonLinearity(prefix + '_sigmoid', upsampled_tensor, tf.sigmoid)
             cost = cross_entropy(l, label)
             return l, cost
 
@@ -138,7 +138,8 @@ class Model(ModelDesc):
         add_param_summary([('.*/W', ['histogram'])])   # monitor W
         cost = tf.add_n([cost, wd_cost], name='combined_cost')
 
-        return cost
+        self.cost = cost
+
 
 
 def get_data(train_or_test):
