@@ -34,9 +34,9 @@ class Model(ModelDesc):
             InputVar(tf.float32, [None, OUT_DIM], 'label'),
         ]
 
-    def _get_cost(self, input_vars, is_training):
+    def _build_graph(self, input_vars):
         l_image, r_image, label = input_vars
-        if is_training:
+        if get_current_tower_context().is_training:
             tf.image_summary('train_left_image', l_image, BATCH_SIZE)
             tf.image_summary('train_right_image', r_image, BATCH_SIZE)
 
@@ -73,7 +73,8 @@ class Model(ModelDesc):
         tf.add_to_collection(MOVING_SUMMARY_VARS_KEY, wd_cost)
         add_param_summary([('.*/W', ['histogram'])])   # monitor W
         cost = tf.add_n([cost, wd_cost], name='cost')
-        return cost
+
+        self.cost = cost
 
 
 def get_data(train_or_test):
