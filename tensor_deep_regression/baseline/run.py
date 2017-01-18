@@ -37,8 +37,8 @@ class Model(ModelDesc):
     def _build_graph(self, input_vars):
         l_image, r_image, label = input_vars
         if get_current_tower_context().is_training:
-            tf.image_summary('train_left_image', l_image, BATCH_SIZE)
-            tf.image_summary('train_right_image', r_image, BATCH_SIZE)
+            tf.summary.image('train_left_image', l_image, BATCH_SIZE)
+            tf.summary.image('train_right_image', r_image, BATCH_SIZE)
 
         # build model
         nl = tf.tanh
@@ -57,7 +57,7 @@ class Model(ModelDesc):
                 return l
         l0 = vgg_pipeline(l_image, name='left')
         l1 = vgg_pipeline(r_image, name='right')
-        l = tf.concat(3, [l0, l1], name='concat')
+        l = tf.concat_v2([l0, l1], 3, name='concat')
         l = FullyConnected('fc0', l, out_dim=256, nl=nl)
         l = tf.nn.dropout(l, dropout_keep_prob, name='dropout_fc0')
         l = FullyConnected('fc1', l, out_dim=128, nl=tf.identity)
@@ -101,7 +101,7 @@ def get_config():
         decay_steps=step_per_epoch * 10,
         decay_rate=0.8,
         staircase=True, name='learning_rate')
-    tf.scalar_summary('learning_rate', lr)
+    tf.summary.scalar('learning_rate', lr)
 
     return TrainConfig(
         dataset=dataset_train,
